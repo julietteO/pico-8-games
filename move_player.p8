@@ -22,22 +22,22 @@ end
 
 function _update()
 	if btn(0) then
-		p.x-=p.speed
+		if p.x>0 then p.x-=p.speed end
 		p.direction=0
 		move_sprite()
 	end
 	if btn(1) then
-		p.x+=p.speed
+		if p.x<120 then p.x+=p.speed end
 		p.direction=p.speed
 		move_sprite()
 	end
 	if btn(2) then
-		p.y-=p.speed
+		if p.y>0 then p.y-=p.speed end
 		p.direction=2
 		move_sprite()
 	end
 	if btn(3) then
-		p.y+=p.speed
+		if p.y<120 then p.y+=p.speed end
 		p.direction=3
 		move_sprite()
 	end
