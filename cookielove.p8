@@ -45,10 +45,10 @@ function move(direction)
 	end
 	
 	if direction == 1 then
-		if p1.x<=128 then
+		if p1.x<120 then
 			p1.x+=1
 		end
-		if p2.x<=128 then
+		if p2.x<120 then
 			p2.x+=1
 		end
 	end
@@ -63,10 +63,10 @@ function move(direction)
 	end
 	
 	if direction == 3 then
-		if p1.y<=128 then
+		if p1.y<120 then
 			p1.y+=1	 
 		end
-		if p2.y<=	128 then
+		if p2.y<120 then
 			p2.y+=1
 		end
 	end
