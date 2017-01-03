@@ -29,6 +29,8 @@ p2={
 	}
 }
 
+level=1
+
 
 function _init()
 end
@@ -40,29 +42,34 @@ end
 
 function _draw()
 	cls()
- mapdraw(0, 0, 0, 0, 16, 16)
+ 	mapdraw(0, 0, 0, 0, 16, 16)
 	spr(p1.sprites[p1.direction+1][p1.sprite_step],p1.x,p1.y)
 	spr(p2.sprites[p2.direction+1][p2.sprite_step],p2.x,p2.y)
 end
 
 function move_player(p) 
-	if coll_map(p) then
-		p.direction=3
-		p.sprite_step=1
-	elseif btn(0) then
-		if p.x>0 then p.x-=p.speed end
+	if btn(0) then
+		if not coll_map(p.x-p.speed, p.y) then
+			p.x-=p.speed 
+		end
 		p.direction=0
 		move_sprite(p)
 	elseif btn(1) then
-		if p.x<120 then p.x+=p.speed end
+		if not coll_map(p.x+p.speed, p.y) then 
+			p.x+=p.speed 
+		end
 		p.direction=p.speed
 		move_sprite(p)
 	elseif btn(2) then
-		if p.y>0 then p.y-=p.speed end
+		if not coll_map(p.x, p.y-p.speed) then 
+			p.y-=p.speed 
+		end
 		p.direction=2
 		move_sprite(p)
- elseif btn(3) then
-		if p.y<120 then p.y+=p.speed end
+ 	elseif btn(3) then
+		if not coll_map(p.x, p.y+p.speed) then 
+			p.y+=p.speed 
+		end
 		p.direction=3
 		move_sprite(p)
 	else
@@ -78,15 +85,15 @@ function move_sprite(p)
 	end
 end
 
-function coll_map(p)
-  local x1=p.x/8
-  local y1=p.y/8
-  local x2=(p.x+7)/8
-  local y2=(p.y+7)/8
-  local a=fget(mget(x1+1,y1+1),0)
-  local b=fget(mget(x1+1,y2-1),0)
-  local c=fget(mget(x2-1,y2-1),0)
-  local d=fget(mget(x2-1,y1+1),0)
+function coll_map(x, y)
+  local x1=x/8
+  local y1=y/8
+  local x2=(x+7)/8
+  local y2=(y+7)/8
+  local a=fget(mget(x1,y1),0)
+  local b=fget(mget(x1,y2),0)
+  local c=fget(mget(x2,y2),0)
+  local d=fget(mget(x2,y1),0)
   return a or b or c or d
 end
 __gfx__
