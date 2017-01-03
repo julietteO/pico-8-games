@@ -63,7 +63,7 @@ function move_player(p)
 			p.stopped = 0 
 		else
 			p.sprite_step = 4
-			if p.stopped==0 then p.stopped=1 end
+			p.stopped = 1
 		end
 		p.direction=0
 		move_sprite(p)
@@ -73,7 +73,7 @@ function move_player(p)
 			p.stopped = 0 
 		else
 			p.sprite_step = 4
-			if p.stopped==0 then p.stopped=1 end
+			p.stopped = 1
 		end
 		p.direction=p.speed
 		move_sprite(p)
@@ -83,7 +83,7 @@ function move_player(p)
 			p.stopped = 0 
 		else
 			p.sprite_step = 4
-			if p.stopped==0 then p.stopped=1 end
+			p.stopped = 1
 		end
 		p.direction=2
 		move_sprite(p)
@@ -93,7 +93,7 @@ function move_player(p)
 			p.stopped = 0 
 		else
 			p.sprite_step = 4
-			if p.stopped==0 then p.stopped=1 end
+			p.stopped = 1
 		end
 		p.direction=3
 		move_sprite(p)
