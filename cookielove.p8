@@ -47,29 +47,53 @@ c2={
 	sprite=33
 }
 
-level=1
+sounds={
+	blocked=0,
+	picked=1,
+	lose=3,
+	win=4
+}
+
+tags={
+	wall=0,
+	trap=1
+}
+
+levels={
+	{
+		p1x=64,
+		p1y=64,
+		p2x=84,
+		p2y=84,
+		c1x=8,
+		c1y=8,
+		c2x=112,
+		c2y=112,
+		mapx=0,
+		mapy=0
+	}
+}
+
+currentlevel=1
 soundblocked=0
 
 function _init()
+	menuitem(1, "Restart level", function() reset_level() sfx(sounds.lose) end)
 end
 
 function _update()
 
 	move_player(p1)
 	move_player(p2)
-	if p1.stopped==1
-		and p2.stopped==1 
-		and soundblocked==0 then
-		sfx(0)
-		soundblocked=1
-	end
+	check_blocked()
 	move_cookie(c1)
 	move_cookie(c2)
+	check_victory()
 end
 
 function _draw()
 	cls()
- 	mapdraw(0, 0, 0, 0, 16, 16)
+ 	mapdraw(levels[currentlevel].mapx, levels[currentlevel].mapy, 0, 0, 16, 16)
 	spr(p1.sprites[p1.direction+1][p1.sprite_step],p1.x,p1.y)
 	spr(p2.sprites[p2.direction+1][p2.sprite_step],p2.x,p2.y)
 	spr(c1.sprite, c1.x, c1.y);
@@ -78,7 +102,7 @@ end
 
 function move_player(p) 
 	if btn(0) then
-		if not coll_map(p.x-p.speed, p.y,0) then
+		if not coll_map(p.x-p.speed, p.y, tags.wall) then
 			p.x-=p.speed 
 			p.stopped = 0 
 		else
@@ -88,7 +112,7 @@ function move_player(p)
 		p.direction=0
 		move_sprite(p)
 	elseif btn(1) then
-		if not coll_map(p.x+p.speed, p.y,0) then 
+		if not coll_map(p.x+p.speed, p.y, tags.wall) then 
 			p.x+=p.speed 
 			p.stopped = 0 
 		else
@@ -98,7 +122,7 @@ function move_player(p)
 		p.direction=p.speed
 		move_sprite(p)
 	elseif btn(2) then
-		if not coll_map(p.x, p.y-p.speed,0) then 
+		if not coll_map(p.x, p.y-p.speed, tags.wall) then 
 			p.y-=p.speed 
 			p.stopped = 0 
 		else
@@ -108,7 +132,7 @@ function move_player(p)
 		p.direction=2
 		move_sprite(p)
  	elseif btn(3) then
-		if not coll_map(p.x, p.y+p.speed,0) then 
+		if not coll_map(p.x, p.y+p.speed, tags.wall) then 
 			p.y+=p.speed 
 			p.stopped = 0 
 		else
@@ -123,9 +147,10 @@ function move_player(p)
 		p.stopped=0
 	end
 
-	if coll_map(p.x, p.y, 1) then
+	if coll_map(p.x, p.y, tags.trap) then
 		-- lose game
-		sfx(3)
+		sfx(sounds.lose)
+		reset_level()
 	end
 
 	if p.stopped == 0 then soundblocked=0 end
@@ -138,26 +163,59 @@ function move_sprite(p)
 	end
 end
 
-function move_cookie(c) {
+function move_cookie(c) 
 	if c.attached then
 		c.x = c.player.x;
 		c.y = c.player.y-9;
 	else
 		if coll_sqr(c.x, c.y, c.player.x, c.player.y) then
 			c.attached=true
-			sfx(1)
+			sfx(sounds.picked)
 		end
 	end
-}
+end
 
-function coll_sqr(x1, y1, x2, y2) {
+function check_victory() 
+	if abs(c1.x-c2.x) < 8 
+		and abs(c1.y-c2.y) < 8 then
+		-- victory
+		sfx(sounds.win)
+		-- currentlevel+=1
+		reset_level()
+	end
+end
+
+function check_blocked()
+	if p1.stopped==1
+	and p2.stopped==1 
+	and soundblocked==0 then
+		sfx(sounds.blocked)
+		soundblocked=1
+	end
+end
+
+function reset_level() 
+	c1.x=levels[currentlevel].c1x
+	c1.y=levels[currentlevel].c1y
+	c1.attached=false
+	c2.x=levels[currentlevel].c2x
+	c2.y=levels[currentlevel].c2y
+	c2.attached=false
+	p1.x=levels[currentlevel].p1x
+	p1.y=levels[currentlevel].p1y
+	p2.x=levels[currentlevel].p2x
+	p2.y=levels[currentlevel].p2y
+	soundblocked=0
+end
+
+function coll_sqr(x1, y1, x2, y2) 
 	if abs(x1-x2) < 8
 		and abs(y1-y2) < 8 then
 		return true
 	else
 		return false
 	end
-}
+end
 
 function coll_map(x, y, tag)
   local x1=x/8
@@ -338,8 +396,8 @@ __map__
 __sfx__
 000100000c0500c0500c0500c0500c0500c0500300003000040000400004000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 000100000c0500c0500c0500c0500c0500c0500300003000040000400004000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+000100000c0500c0500c0500c0500c0500c0500300003000040000400004000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+000100000c0500c0500c0500c0500c0500c0500300003000040000400004000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
