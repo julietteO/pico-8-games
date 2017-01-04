@@ -31,8 +31,24 @@ p2={
 	}
 }
 
+c1={
+	player=p1,
+	attached=false,
+	x=8,
+	y=8,
+	sprite=32
+}
+
+c2={
+	player=p2,
+	attached=false,
+	x=112,
+	y=112,
+	sprite=33
+}
+
 level=1
-soundBlocked=0
+soundblocked=0
 
 function _init()
 end
@@ -43,10 +59,12 @@ function _update()
 	move_player(p2)
 	if p1.stopped==1
 		and p2.stopped==1 
-		and soundBlocked==0 then
+		and soundblocked==0 then
 		sfx(0)
-		soundBlocked=1
+		soundblocked=1
 	end
+	move_cookie(c1)
+	move_cookie(c2)
 end
 
 function _draw()
@@ -54,11 +72,13 @@ function _draw()
  	mapdraw(0, 0, 0, 0, 16, 16)
 	spr(p1.sprites[p1.direction+1][p1.sprite_step],p1.x,p1.y)
 	spr(p2.sprites[p2.direction+1][p2.sprite_step],p2.x,p2.y)
+	spr(c1.sprite, c1.x, c1.y);
+	spr(c2.sprite, c2.x, c2.y);
 end
 
 function move_player(p) 
 	if btn(0) then
-		if not coll_map(p.x-p.speed, p.y) then
+		if not coll_map(p.x-p.speed, p.y,0) then
 			p.x-=p.speed 
 			p.stopped = 0 
 		else
@@ -68,7 +88,7 @@ function move_player(p)
 		p.direction=0
 		move_sprite(p)
 	elseif btn(1) then
-		if not coll_map(p.x+p.speed, p.y) then 
+		if not coll_map(p.x+p.speed, p.y,0) then 
 			p.x+=p.speed 
 			p.stopped = 0 
 		else
@@ -78,7 +98,7 @@ function move_player(p)
 		p.direction=p.speed
 		move_sprite(p)
 	elseif btn(2) then
-		if not coll_map(p.x, p.y-p.speed) then 
+		if not coll_map(p.x, p.y-p.speed,0) then 
 			p.y-=p.speed 
 			p.stopped = 0 
 		else
@@ -88,7 +108,7 @@ function move_player(p)
 		p.direction=2
 		move_sprite(p)
  	elseif btn(3) then
-		if not coll_map(p.x, p.y+p.speed) then 
+		if not coll_map(p.x, p.y+p.speed,0) then 
 			p.y+=p.speed 
 			p.stopped = 0 
 		else
@@ -103,7 +123,12 @@ function move_player(p)
 		p.stopped=0
 	end
 
-	if p.stopped == 0 then soundBlocked=0 end
+	if coll_map(p.x, p.y, 1) then
+		-- lose game
+		sfx(3)
+	end
+
+	if p.stopped == 0 then soundblocked=0 end
 end
 
 function move_sprite(p)
@@ -113,15 +138,36 @@ function move_sprite(p)
 	end
 end
 
-function coll_map(x, y)
+function move_cookie(c) {
+	if c.attached then
+		c.x = c.player.x;
+		c.y = c.player.y-9;
+	else
+		if coll_sqr(c.x, c.y, c.player.x, c.player.y) then
+			c.attached=true
+			sfx(1)
+		end
+	end
+}
+
+function coll_sqr(x1, y1, x2, y2) {
+	if abs(x1-x2) < 8
+		and abs(y1-y2) < 8 then
+		return true
+	else
+		return false
+	end
+}
+
+function coll_map(x, y, tag)
   local x1=x/8
   local y1=y/8
   local x2=(x+7)/8
   local y2=(y+7)/8
-  local a=fget(mget(x1,y1),0)
-  local b=fget(mget(x1,y2),0)
-  local c=fget(mget(x2,y2),0)
-  local d=fget(mget(x2,y1),0)
+  local a=fget(mget(x1,y1),tag)
+  local b=fget(mget(x1,y2),tag)
+  local c=fget(mget(x2,y2),tag)
+  local d=fget(mget(x2,y1),tag)
   return a or b or c or d
 end
 __gfx__
@@ -291,7 +337,7 @@ __map__
 0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 __sfx__
 000100000c0500c0500c0500c0500c0500c0500300003000040000400004000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+000100000c0500c0500c0500c0500c0500c0500300003000040000400004000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
