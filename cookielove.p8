@@ -90,13 +90,24 @@ nblevels=2
 currentlevel=0
 soundblocked=0
 
+-- title screen vars
+startpressed=false
+startgame=false
+animtimer=0
+x1=0
+x2=88
+
 function _init()
 	menuitem(1, "restart level", function() reset_level() sfx(sounds.lose) end)
 end
 
 function _update()
 	if currentlevel==0
-	and btn(4) then 
+	and btn(4)
+	and not startpressed then 
+		startpressed=true
+	elseif currentlevel==0
+	and startgame then	
 		currentlevel=1
 	else
 		move_player(p1)
@@ -258,11 +269,23 @@ function coll_map(x, y, tag)
 end
 
 function draw_title_screen()
-	mapdraw(0,16, 0, 50, 5, 24)
-	mapdraw(5,16,88,50,9,24)
 	print("cookie love", 43, 20)
 	print("press a",51,82)	
 	print("to start",49, 92)
+	if startpressed then
+		if x1<23 then
+			x1+=2
+			x2-=2
+		elseif x1>=23 then
+			if animtimer>10 then
+				startgame=true
+			else 
+				animtimer+=1
+			end
+		end 
+	end 
+	mapdraw(0,16, x1, 50, 5, 24)
+	mapdraw(5,16,x2,50,9,24)
 end
 __gfx__
 22200222222002222220022222200222222002222220022222200222222002220022200000222000002220000022200000022200000222000002220000022200
