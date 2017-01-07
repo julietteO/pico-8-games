@@ -87,7 +87,7 @@ levels={
 }
 
 nblevels=2
-currentlevel=1
+currentlevel=0
 soundblocked=0
 
 function _init()
@@ -95,23 +95,31 @@ function _init()
 end
 
 function _update()
-
-	move_player(p1)
-	move_player(p2)
-	check_blocked()
-	move_cookie(c1)
-	move_cookie(c2)
-	check_victory()
+	if currentlevel==0
+	and btn(4) then 
+		currentlevel=1
+	else
+		move_player(p1)
+		move_player(p2)
+		check_blocked()
+		move_cookie(c1)
+		move_cookie(c2)
+		check_victory()
+	end
 end
 
 function _draw()
 	cls()
- mapdraw(levels[currentlevel].mapx, levels[currentlevel].mapy, 0, 0, 16, 16)
-	spr(p1.sprites[p1.direction+1][p1.sprite_step],p1.x,p1.y)
-	spr(p2.sprites[p2.direction+1][p2.sprite_step],p2.x,p2.y)
-	spr(c1.sprite, c1.x, c1.y);
-	spr(c2.sprite, c2.x, c2.y);
-	draw_level()
+	if currentlevel==0 then
+		print("press a to start")
+	else
+		mapdraw(levels[currentlevel].mapx, levels[currentlevel].mapy, 0, 0, 16, 16)
+		spr(p1.sprites[p1.direction+1][p1.sprite_step],p1.x,p1.y)
+		spr(p2.sprites[p2.direction+1][p2.sprite_step],p2.x,p2.y)
+		spr(c1.sprite, c1.x, c1.y);
+		spr(c2.sprite, c2.x, c2.y);
+		draw_level()
+	end
 end
 
 function move_player(p) 
