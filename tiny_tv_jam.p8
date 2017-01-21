@@ -34,7 +34,77 @@ tv_fakevangle =0 --min:-1 max:1
 tv_debug      =false
 
 --game vars
-songs={}
+current_level=1
+timer=0
+songs={
+ {
+ 	title='smoke on the water',
+		length=12,
+ 	notes={
+ 	 {
+ 	 	d='down',
+ 	 	x=3,
+ 	 	y=4,
+ 	 	t=10
+ 	 }, 	 {
+ 	 	d='left',
+ 	 	x=3,
+ 	 	y=4,
+ 	 	t=10
+ 	 }, 	 {
+ 	 	d='right',
+ 	 	x=3,
+ 	 	y=4,
+ 	 	t=10
+ 	 }, 	 {
+ 	 	d='down',
+ 	 	x=3,
+ 	 	y=4,
+ 	 	t=10
+ 	 }, 	 {
+ 	 	d='left',
+ 	 	x=3,
+ 	 	y=4,
+ 	 	t=10
+ 	 }, 	 {
+ 	 	d='up',
+ 	 	x=3,
+ 	 	y=4,
+ 	 	t=10
+ 	 }, 	 {
+ 	 	d='right',
+ 	 	x=3,
+ 	 	y=4,
+ 	 	t=10
+ 	 }, 	 {
+ 	 	d='down',
+ 	 	x=3,
+ 	 	y=4,
+ 	 	t=10
+ 	 }, 	 {
+ 	 	d='left',
+ 	 	x=3,
+ 	 	y=4,
+ 	 	t=10
+ 	 }, 	 {
+ 	 	d='right',
+ 	 	x=3,
+ 	 	y=4,
+ 	 	t=10
+ 	 }, 	 {
+ 	 	d='left',
+ 	 	x=3,
+ 	 	y=4,
+ 	 	t=10
+ 	 }, 	 {
+ 	 	d='down',
+ 	 	x=3,
+ 	 	y=4,
+ 	 	t=10
+ 	 },
+ 	}
+ }
+}
 arrows={
     {
         name='up',
@@ -83,14 +153,17 @@ end
 
 ---update your game here
 function _game_update()
-    _tilt_tv()
-    _update_arrows()
+ _tilt_tv()
+ _update_arrows()
+ _update_notes()   
+	timer+=1
 end
 
 
 ---draw your game here
-function _game_draw()
-    _draw_arrows()
+function _game_draw()		
+ _draw_arrows()
+	_draw_notes()
 end
 
 
@@ -104,8 +177,8 @@ end
 --called on cart start-up (works only then)
 --puts text on the screen (optional)
 function _set_screen_text()
-
- tv_add_text("tiny guitar hero",64,5,1,7,0)
+	
+ -- tv_add_text("tiny guitar hero",64,5,1,7,0)
  --(text,x,y,alignment,color0,color1)
  
 end
@@ -135,27 +208,45 @@ function _tilt_tv()
 end
 
 function _update_arrows()
- if btnp(0) then
+ if btn(2) then
   arrows[1].is_active=true
   arrows[2].is_active=false
   arrows[3].is_active=false
   arrows[4].is_active=false
- elseif btnp(1) then
+ elseif btn(3) then
   arrows[1].is_active=false
   arrows[2].is_active=true
   arrows[3].is_active=false
   arrows[4].is_active=false
- elseif btnp(2) then
+ elseif btn(0) then
   arrows[1].is_active=false
   arrows[2].is_active=false
   arrows[3].is_active=true
   arrows[4].is_active=false
- elseif btnp(3) then
+ elseif btn(1) then
   arrows[1].is_active=false
   arrows[2].is_active=false
   arrows[3].is_active=false
   arrows[4].is_active=true
+ else
+  arrows[1].is_active=false
+  arrows[2].is_active=false
+  arrows[3].is_active=false
+  arrows[4].is_active=false 
  end
+end
+
+function _update_notes()
+	for i=1, songs[current_level].length do
+		note=songs[current_level].notes[i]
+		if timer >= note.t then
+			if note.d =='up' then note.x-=1		
+		 elseif	note.d =='down' then note.x+=1
+		 elseif	note.d =='left' then note.y-=1
+		 elseif note.d =='right' then note.y+=1
+			end		
+		end
+	end 
 end
 
 function _draw_arrows()
@@ -168,6 +259,15 @@ function _draw_arrows()
   spr(sprite, arrow.x, arrow.y)
  end
 end
+
+function _draw_notes()
+ for i=1,songs[current_level].length	 do
+ 	note=songs[current_level].notes[i]
+		spr(9, note.x, note.y)
+ end
+end
+
+
 
 
 
@@ -425,9 +525,9 @@ function tv_draw_text(str,x,y,al,c0,c1)--go away
 end
 
 __gfx__
-00000000060000006000000006000000606000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00000000600000000600000060600000060000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00700700060000006000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+000000000c000000c00000000c000000c0c000000a000000a00000000a000000a0a0000000000000000000000000000000000000000000000000000000000000
+00000000c00000000c000000c0c000000c000000a00000000a000000a0a000000a0000000f000000000000000000000000000000000000000000000000000000
+007007000c000000c000000000000000000000000a000000a0000000000000000000000000000000000000000000000000000000000000000000000000000000
 00077000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00077000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00700700000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
