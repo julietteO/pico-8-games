@@ -1,9 +1,9 @@
 pico-8 cartridge // http://www.pico-8.com
 version 8
 __lua__
--- tiny-tv jam base cart
--- by trasevol_dog
-
+-- don't microwave the cat
+-- by krakenrose (base cart by trasevol_dog)
+!
 
 --hi!
 
