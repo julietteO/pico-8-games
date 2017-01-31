@@ -3,7 +3,7 @@ version 8
 __lua__
 -- don't microwave the cat
 -- by krakenrose (base cart by trasevol_dog)
-!
+
 
 --hi!
 
@@ -197,6 +197,7 @@ end
 function _waste_food()
 	sfx(5)
 	current_item.s=49
+	current_item.done=true
 	_fail()
 end
 
@@ -210,7 +211,7 @@ end
 function _success()
  nb_success+=1
  if nb_success%10==0 then
- 	if rythm>0 then rythm-=5 end
+ 	if rythm>6 then rythm-=5 end
  end
 end
 
