@@ -1,21 +1,20 @@
 pico-8 cartridge // http://www.pico-8.com
 version 16
 __lua__
--- picolele uses the same layout as ordinary tabs
--- █▥░➡️⧗▤⬆️☉🅾️◆…★⬇️✽●♥웃⌂⬅️😐∧❎🐱ˇ▒♪★
--- press a to select note on string (also plays it)
--- press b to play current chord
 
--- ui : save chord, delete chord, play track
-
+-- picolele by @krakenrose
+---- fretboard rows (strings) are from 1 to 4 included
+---- fretboard cols are from -1 to nb_frets included in order to match standard tabs numbering
 
 -- features ideas
----- precharged tracks (ex cocoon)
 ---- save track
----- sfx : notes should be speed 16, with fade out effect
 ---- display current chord name
 ---- display current note name
----- play gcea when opening user guide
+---- option to choose sound type
+---- cool title screen
+
+-- todo
+---- play single note
 
 ---- notes reminder
 -- a2(9),   a2#(10),    b2(11),     c2(12),     c2#(13),    d2(14),     d2#(15),    e2(16),     f2(17),     f2#(18),    g2(19);
@@ -23,63 +22,44 @@ __lua__
 -- c1(0),   c1#(1),     d1(2),      d1#(3),     e1(4),      f1(5),      f1#(6),     g1(7),      g1#(8),     a2(9),      a2#(10);
 -- g1(7),   g1#(8),     a2(9),      a2#(10),    b2(11),     c2(12),     c2#(13),    d2(14),     d2#(15),    e2(16),     f2(17);
 
+-- chords reminders
+---- c  {3,0,0,0}
+---- g  {2,3,2,0}
+---- am {0,0,0,2}
+---- em {2,3,5,0}
+---- f  {0,1,0,2}
+---- e7 {2,0,2,1}
+---- d  {0,3,3,3}
 
--- coordinates reminders
--- for -1 notes, x is 4
--- x rows are 4, 13, 24, 39, 52, 64, 75, 85, 95, 105, 115, 123 
--- y lines are : 8, 24, 40, 56
+-- changelog 
+---- add tracks
+---- polish menus
+---- fix bugs
+---- cols -1 indexed
 
-
-is_dev=false
-free_cursor={
-    x=0,
-    y=0
-}
-function update_dev()
-    if btnp(0) then
-		if free_cursor.x>0 then free_cursor.x-=1 end
-	end
-	if btnp(1) then
-		if free_cursor.x<127 then free_cursor.x+=1 end
-	end
-	if btnp(2) then
-		if free_cursor.y>0 then free_cursor.y-=1 end
-	end
-	if btnp(3) then
-		if free_cursor.y<127 then free_cursor.y+=1 end
-	end
-end
-
-function draw_dev()
-    circfill(free_cursor.x, free_cursor.y, 1, 8)
-    print("x="..free_cursor.x..", y="..free_cursor.y, 0,120,7)
-end
-
--- current selected chord on fretboard
-current_chord={1,1,1,1}
-
--- see cursor_positions table
--- 1-indexed
--- for col, 0 value is for no note
-current_cursor_position={
-    row=1,
-    col=1
-}
-
-current_track_position=0
-on_track=false
+-- general vars
+single_note_count=0
 
 -- ui vars
-is_guide=false
-is_tracks_menu=false
+on_fretboard=true
+on_track=false
+on_guide=false
+on_tracks_menu=false
+on_options=false
+blink=0 -- global blinking marker
 
 -- track vars
--- track={{1,1,1,1}, {1,2,1,3}, {1,1,1,1},{1,1,1,1}, {1,1,1,4}, {1,1,1,1},{1,1,1,1}, {1,1,1,1}, {1,1,1,1}, {1,1,1,1},{1,1,1,1}, {1,1,1,1}, {1,1,1,1},{1,1,1,1}, {1,1,1,1}, {1,1,1,1},{1,1,1,1}, {1,1,1,1}, {1,1,1,1},{1,1,1,1}, {1,1,1,1}, {1,1,1,1},{1,1,1,1}, {1,1,1,1}, {1,1,1,1},{1,1,1,1}, {1,1,1,1}, {1,1,1,1},{1,1,1,1}, {1,2,1,3}, {1,1,1,1},{1,1,1,1}, {1,1,1,4}, {1,1,1,1},{1,1,1,1}, {1,1,1,1}, {1,1,1,1}, {1,1,1,1},{1,1,1,1}, {1,1,1,1}, {1,1,1,1},{1,1,1,1}, {1,1,1,1}, {1,1,1,1},{1,1,1,1}, {1,1,1,1}, {1,1,1,1},{1,1,1,1}, {1,1,1,1}, {1,1,1,1},{1,1,1,1}, {1,1,1,1}, {1,1,1,1},{1,1,1,1}, {1,1,1,1}, {1,1,1,1}}
+current_track_position=0
 track={}
 
 -- fretboard vars
-nbfrets=11
-cols_x={4, 13, 24, 39, 52, 64, 75, 85, 95, 105, 115, 123 }
+current_chord={0,0,0,0}
+current_fretboard_position={
+    row=1,
+    col=0
+}
+nb_frets=10
+cols_x={4, 13, 26, 39, 52, 63, 74, 84, 94, 104, 114, 122 }
 rows_y={8, 24, 40, 56}
 pos_sfx={
     { 9,10,11,12,13,14,15,16,17,18,19},
@@ -88,68 +68,59 @@ pos_sfx={
     { 7, 8, 9,10,11,12,13,14,15,16,17},
 }
 
--- precharged tracks
-precharged_tracks={
+
+-- options vars
+options_cursor_index=1
+nb_options=1
+
+current_sound_set=1
+nb_sound_sets=2
+
+
+-- preloaded tracks vars
+preloaded_tracks={
     {
         title="chupee",
-        track={{3,4,3,1},{3,4,5,1},{3,3,3,5},{4,3,3,3}}
+        track={{2,3,2,0},{2,3,4,0},{2,2,2,4},{3,2,2,2},{3,0,0,0},{0,0,0,2},{2,3,2,0},{2,2,2,4}}
     },
     {
         title="over the rainbow",
-        track={}
+        track={{3,0,0,0},{2,3,4,0},{0,1,0,2},{3,0,0,0},{0,1,0,2},{2,0,2,1},{0,0,0,2},{0,1,0,2}}
     },
+    {
+        title="stairway to heaven",
+        --{-1,-1,-1,-1}
+        track={{-1,-1,-1,2},{-1,-1,0,-1},{-1,0,-1,-1},{0,-1,-1,-1},{2,-1,-1,1},{-1,0,-1,-1},{-1,-1,0,-1},{2,-1,-1,-1},{3,-1,-1,0},{-1,0,-1,-1},{-1,-1,0,-1},{3,-1,-1,-1},{-1,2,-1,2},{-1,-1,2,-1},{-1,2,-1,-1},{0,-1,-1,-1},{-1,-1,-1,2},{-1,-1,0,-1},{-1,1,-1,-1},{0,-1,-1,-1},{-1,1,-1,-1},{-1,-1,0,-1},{2,3,2,0},{0,0,0,2},{0,0,0,2}}
+    },
+    -- {
+    --     title="the lazy song",
+    --     track={}
+    -- },
 }
-precharged_tracks_cursor_index=1
+preloaded_tracks_cursor_index=1
+
+
+-- end of global vars
+
 
 function _init()
-	menuitem(1, "user guide", function() is_guide=true is_tracks_menu=false end)
-	menuitem(2, "tracks menu", function() is_tracks_menu=true is_guide=false end)
+	menuitem(1, "user guide", function() to_guide() end)
+	menuitem(2, "tracks menu", function() to_tracks_menu() end)
+	menuitem(3, "options", function() to_options() end)
 end
 
 function _update()
-    if is_dev then 
-        update_dev() 
-        return
-    end
+    blink+=1
+    if blink==16 then blink=0 end
 
-    if btnp(0) then move_cursor(-1,0)
-    elseif btnp(1) then move_cursor(1,0)
-    elseif btnp(2) then move_cursor(0,-1)
-    elseif btnp(3) then move_cursor(0,1)
-    end
+    if single_note_count>0 then single_note_count-=1 end
 
-    -- handle actions on fretboard
-    if on_fretboard() then
-        if btn(4) then
-            play_current_chord()
-        else
-            stop_sfx()
-            if btnp(5) then
-                save_current_chord()
-            end
-        end
-    elseif on_track then
-        if btn(4) then
-            play_chord(track[current_track_position+1])
-        else
-            stop_sfx()
-            if btnp(5) then
-                delete_chord(current_track_position+1)
-            end
-        end
-    end
-
-    if is_guide and btnp(4) then 
-        is_guide=false
-    end
-
-    if is_tracks_menu and btnp(4) then 
-        track=precharged_tracks[precharged_tracks_cursor_index].track
-        is_tracks_menu=false
-    end
-    if is_tracks_menu and btnp(5) then 
-        is_tracks_menu=false
-    end
+    -- modals
+    if on_guide then update_guide()
+    elseif on_tracks_menu then update_tracks_menu()
+    elseif on_options then update_options()
+    elseif on_fretboard then update_fretboard() 
+    elseif on_track then update_track() end
 end
 
 function _draw()
@@ -158,93 +129,154 @@ function _draw()
     rectfill(0,64,128,72,0)
     print('picolele ♪', 1, 65, 5)
     map(0, 0, 0, 0, 16, 16) 
-    
-    if is_dev then 
-        draw_dev() 
-        return
-    end
 
-    -- display user user guide
-    if is_guide then
+    if on_guide then
         draw_guide()
-    elseif is_tracks_menu then
+    elseif on_tracks_menu then
         draw_tracks_menu()
+    elseif on_options then
+        draw_options()
     else 
-        draw_current_chord()
-        draw_cursor()
+        draw_chord(current_chord)
         draw_track()
+        
+        if on_fretboard then
+            draw_fretboard_cursor()
+        end
     end
 end
 
--- moves cursor if possible
-function move_cursor(coldiff, rowdiff) 
-    
-    -- we move cursor only if possible
-    -- todo allow navigation in ui below 
-    if on_track then 
-        if current_track_position==0 and coldiff<0 then return end
-        if coldiff != 0 then
-            -- can't go further than the track
-            if current_track_position+1 == #track and coldiff>0 then return end
-            
-            current_track_position += coldiff
-        elseif rowdiff != 0 then
-            -- if on track first line, go to fretboard
-            if current_track_position<14 and rowdiff<0 then
-                on_track=false
-                current_track_position=0
-                return
-            end
-            if current_track_position>=14 and rowdiff<0 then
-                current_track_position-=14 
-                return
-            end
-            if current_track_position+14 <= #track and rowdiff>0 then
-                current_track_position+=14
-                return
-            end 
+function update_fretboard()
+    if btnp(0) then 
+        if current_fretboard_position.col>-1 then 
+            current_fretboard_position.col-=1 
+            play_cursor_note()
         end
-    elseif on_fretboard() then
-        if current_cursor_position.row==4 and rowdiff>0 then 
-            if #track>0 then
-                on_track=true 
-            end
-            return
+    elseif btnp(1) then 
+        if current_fretboard_position.col<nb_frets then 
+            current_fretboard_position.col+=1 
+            play_cursor_note()
         end
-        if current_cursor_position.row==1 and rowdiff<0 then return end
-        -- on strings, we allow -1 col value to play silent note
-        if current_cursor_position.col==0 and coldiff<0 then return end
-        if current_cursor_position.col==nbfrets and coldiff>0 then return end
-        -- todo add restrictions when on ui row (row number 4)
-        
-        current_cursor_position.row+=rowdiff 
-        current_cursor_position.col+=coldiff
-        
-        current_chord[current_cursor_position.row]=current_cursor_position.col
-    elseif is_tracks_menu then
-        if rowdiff == 0 then return end
-        
-        if precharged_tracks_cursor_index == 1 and rowdiff<0 then return end
-        if precharged_tracks_cursor_index == #precharged_tracks and rowdiff>1 then return end
-        
-        precharged_tracks_cursor_index+=rowdiff
+    elseif btnp(2) then 
+        if current_fretboard_position.row > 1 then 
+            current_fretboard_position.row-=1 
+            play_cursor_note()
+        end
+    elseif btnp(3) then 
+        if current_fretboard_position.row<4 then
+            current_fretboard_position.row+=1
+            play_cursor_note()
+        elseif #track>0 then
+            to_track()
+        end
     else
+        if btn(4) then
+            play_chord(current_chord)
+        else
+            __stop_sfx()
+            if btnp(5) then
+                save_current_chord()
+            end
+        end
     end
+    current_chord[current_fretboard_position.row]=current_fretboard_position.col
+end
 
-    -- play sound if cursor on note
-    if on_fretboard() and current_cursor_position.col>0 then
-        sfx(pos_sfx[current_cursor_position.row][current_cursor_position.col])
+function update_track()
+    if btnp(0) then 
+        if current_track_position>0 then 
+            current_track_position-=1 
+        end
+    elseif btnp(1) then 
+        if current_track_position < #track-1 then 
+            current_track_position+=1 
+        end
+    elseif btnp(2) then
+        -- if on track first line, go to fretboard
+        if current_track_position<14 then
+            to_fretboard()
+        else
+            current_track_position-=14 
+        end
+    elseif btnp(3) then
+        if current_track_position+14 <= #track then 
+            current_track_position+=14 
+        end
+    else
+        if btn(4) then
+            play_chord(track[current_track_position+1])
+        else
+            __stop_sfx()
+            if btnp(5) then
+                delete_chord(current_track_position+1)
+            end
+        end
     end
 end
 
-function draw_cursor()
-    local cursor_coord_x = cols_x[current_cursor_position.col+1]
-    local cursor_coord_y = rows_y[current_cursor_position.row]
+function update_guide()
+    if btnp(4) then 
+        on_guide=false
+    end
+end
+
+function update_tracks_menu()
+    if btnp(2) then 
+        if preloaded_tracks_cursor_index>1 then 
+            preloaded_tracks_cursor_index-=1 
+        end
+    elseif btnp(3) then
+        if preloaded_tracks_cursor_index<#preloaded_tracks then 
+            preloaded_tracks_cursor_index+=1 
+        end
+    elseif btnp(4) then 
+        track=preloaded_tracks[preloaded_tracks_cursor_index].track
+        current_track_position=0
+        on_tracks_menu=false
+    elseif btnp(5) then 
+        on_tracks_menu=false
+    end
+end
+
+function update_options()
+    if btnp(2) then
+        if options_cursor_index>1 then 
+            options_cursor_index-=1 
+        end
+    elseif btnp(3) then
+        if options_cursor_index<nb_options then 
+            options_cursor_index+=1 
+        end
+    elseif btnp(4) then
+        on_options=false
+    end
+
+    -- sound set option
+    if options_cursor_index == 1 then
+        if btnp(0) then
+            if current_sound_set>1 then 
+                current_sound_set-=1 
+                play_sound_set_sample()
+            end
+        elseif btnp(1) then
+            if current_sound_set<nb_sound_sets then 
+                current_sound_set+=1 
+                play_sound_set_sample()
+            end
+        end
+        __stop_sfx()
+    end
+end
+
+
+function draw_fretboard_cursor()
+    local cursor_coord_x = cols_x[current_fretboard_position.col+2]
+    local cursor_coord_y = rows_y[current_fretboard_position.row]
     if on_track then return end
-    if current_cursor_position.row <=4 then
+    if current_fretboard_position.row <=4 then
         
-        if current_cursor_position.col == 0 then cursor_shape="x"
-        else cursor_shape=current_cursor_position.col-1 end
+        if current_fretboard_position.col == -1 then cursor_shape="x"
+        else cursor_shape=current_fretboard_position.col end
 
         centerdiff = 0
         if cursor_shape==10 then centerdiff=-2 end
@@ -256,18 +288,9 @@ function draw_cursor()
     end
 end
 
-function draw_current_chord()
-    for i=1,4 do
-        --print(current_chord[i],(0+8*i), 120)
-        local coord_x = cols_x[current_chord[i]+1]
-        local coord_y = rows_y[i]
-        circfill(coord_x+1, coord_y, 4, 12)
-    end
-end
-
 function draw_chord(chord)
     for i=1,4 do
-        local cursor_coord_x = cols_x[chord[i]+1]
+        local cursor_coord_x = cols_x[chord[i]+2]
         local cursor_coord_y = rows_y[i]
         circfill(cursor_coord_x+1, cursor_coord_y, 4, 12)
     end
@@ -285,13 +308,8 @@ function draw_track()
         i+=1
     end
     if on_track then
-        current_chord = {
-            track[current_track_position+1][1],
-            track[current_track_position+1][2],
-            track[current_track_position+1][3],
-            track[current_track_position+1][4],
-        }
-        current_cursor_position.col=track[current_track_position+1][4]
+        current_chord = __copy_chord(track[current_track_position+1])
+        current_fretboard_position.col=track[current_track_position+1][4]
         local track_line=(current_track_position-current_track_position%14)/14
         circfill(11+(8*(current_track_position%14)), 84+(8*track_line),2,12)
     else
@@ -299,63 +317,107 @@ function draw_track()
             j+=1
             i=0
         end
-        circ(11+(8*i), 84+(8*j),2,12)
+        if #track < 70 then
+            circ(11+(8*i), 84+(8*j),2,12)
+        end
     end
 end
 
+-- shows controls
 function draw_guide()
-    cls()
-  
-    print("♪♪ user guide ♪♪",32,2,7)
+    rectfill(4,4,124,124,0)
+    rectfill(5,5,123,123,7)
+    rectfill(6,6,122,122,0)
+    
+    __print_outline("♪♪ user guide ♪♪",25,2,0,7)
     print("on fretboard",10,30,7)
-    print("░ press 🅾️ to play chord",15,40,7)
-    print("░ press ❎ to save chord",15,50,7)
+    print("░ press 🅾️ to play chord",12,40,7)
+    print("░ press ❎ to save chord",12,50,7)
     print("on track",10,70,7)
-    print("░ press 🅾️ to play chord",15,80,7)   
-    print("░ press ❎ to remove chord",15,90,7)
-    print("press 🅾️ to resume", 55, 120,7)
+    print("░ press 🅾️ to play chord",12,80,7)   
+    print("░ press ❎ to remove chord",12,90,7)
+    print("press 🅾️ to resume", 50, 116,__get_blink_color())
 end
 
+-- shows a selection of preloaded tracks
 function draw_tracks_menu()
-    cls()
+    rectfill(4,4,124,124,0)
+    rectfill(5,5,123,123,7)
+    rectfill(6,6,122,122,0)
 
-    print("♪♪ tracks ♪♪",34,2,7)
+    __print_outline("♪♪ tracks ♪♪",32,2,0,7)
 
     local i=1
     local y
-    for precharged_track in all (precharged_tracks) do
+    for preloaded_track in all (preloaded_tracks) do
         y=20+10*i
-        print(precharged_track.title, 25,y,7)
+        print(preloaded_track.title, 25,y,7)
 
-        if i==precharged_tracks_cursor_index then
-            print("░", 10,y,7)
+        if i==preloaded_tracks_cursor_index then
+            print("◆", 12,y,__get_blink_color())
         end
         i+=1
     end
 
-    print("🅾️:select - ❎:cancel", 45, 120,7)
+    print("🅾️:select - ❎:cancel", 38, 116,7)
+end
 
+-- shows options
+function draw_options()
+    rectfill(4,4,124,124,0)
+    rectfill(5,5,123,123,7)
+    rectfill(6,6,122,122,0)
+
+    __print_outline("♪♪ options ♪♪",31,2,0,7)
+
+    print("◆", 12,(20+10*options_cursor_index),__get_blink_color())
+
+    -- sound set option
+    print("sound set:",25,30,7)
+    print(current_sound_set,95,30,7)
+
+    if options_cursor_index == 1 then
+        if current_sound_set>1 then
+            print("<",85,30,7)
+        end
+        if current_sound_set<nb_sound_sets then
+            print(">",105,30,7)
+        end
+    end
+   
+
+    print("press 🅾️ to resume", 50, 116,7)
 end
 
 
 -- plays note corresponding to current cursor position
 function play_cursor_note()
-    -- return if not on a string position
-    if current_cursor_position.row <= 4 then return end
-    if current_cursor_position.col == 0 then return end
-    sfx(pos_sfx[current_cursor_position.row][current_cursor_position.col], current_cursor_position.row)
+    single_note_count=3
+
+    if current_fretboard_position.col != -1 then
+        play_single_sfx((20*(current_sound_set-1))+(pos_sfx[current_fretboard_position.row][(current_fretboard_position.col)+1]),3)
+    end
 end
 
--- plays current chord
-function play_current_chord()
-    play_chord(current_chord)
+function play_single_sfx(n,t)
+    single_note_count=t
+    sfx(n,0)
+end
+
+function play_sound_set_sample(index)
+    single_note_count=10
+
+    sfx(20*(current_sound_set-1),0)
+    sfx(20*(current_sound_set-1)+4,1)
+    sfx(20*(current_sound_set-1)+7,2)
+    sfx(20*(current_sound_set-1)+9,3)
 end
 
 -- chord is an array of 4 ints 
 function play_chord(chord) 
     for i=1,4 do
-        if chord[i] != 0 then
-            sfx(pos_sfx[i][(chord[i])],i)
+        if chord[i] != -1 then
+            sfx((20*(current_sound_set-1))+(pos_sfx[i][(chord[i])+1]),i-1)
         end
     end
 end
@@ -363,14 +425,9 @@ end
 
 -- save current chord to track
 function save_current_chord()
-    local chord = {
-        current_chord[1],
-        current_chord[2],
-        current_chord[3],
-        current_chord[4],
-    }
-
-    add(track, chord)
+    if #track < 70 then
+        add(track, __copy_chord(current_chord))
+    end
 end
 
 function delete_chord(index)
@@ -384,22 +441,93 @@ function delete_chord(index)
         end
     end
     if current_track_position==limit-1 then current_track_position-=1 end
+    if #new_track == 0 then
+        to_fretboard()
+    end
+
     track = new_track
 end
 
-function stop_sfx()
+function to_fretboard()
+    on_fretboard=true
+    on_track=false
+    on_guide=false
+    on_tracks_menu=false
+    
+    current_track_position=0
+end
+
+function to_track()
+    on_fretboard=false
+    on_track=true
+    on_guide=false
+    on_tracks_menu=false
+end
+
+function to_guide()
+    on_guide=true
+    on_tracks_menu=false
+    on_options=false
+end
+
+function to_tracks_menu()
+    on_guide=false
+    on_tracks_menu=true
+    on_options=false
+end
+
+function to_options()
+    on_guide=false
+    on_tracks_menu=false
+    on_options=true
+end
+
+-- in lua table are passed by reference
+function __copy_chord(chord)
+    local copy = {
+        chord[1],
+        chord[2],
+        chord[3],
+        chord[4]
+    }
+
+    return copy
+end
+
+function __stop_sfx()
+    if single_note_count>0 then return end
     sfx(-1,0)
     sfx(-1,1)
     sfx(-1,2)
     sfx(-1,3)
 end
 
+function __print_outline(str,x,y,col1,col2)
+    print(str, x,y-1,col2) 
+    print(str, x,y+1,col2)
+    print(str, x-1,y,col2)
+    print(str, x+1,y,col2)
+    print(str, x-1,y-1,col2) 
+    print(str, x+1,y+1,col2)
+    print(str, x-1,y+1,col2)
+    print(str, x+1,y-1,col2)
+    print(str, x,y,col1)
+end
 
+function __print_outline_center(str,y,col1,col2)
+    local centered_x = 64-((#str*4)/2)
 
-function on_fretboard()
-    if on_track or is_guide or is_tracks_menu then return false else return true end
-    --return current_cursor_position.row <= 4 and current_cursor_position.col > 0
-end 
+    __print_outline(str,centered_x,y,col1,col2)
+end
+
+function __get_blink_color()
+    if(blink<8) then
+        return 7
+    else
+        return 6
+    end
+end
+
 
 __gfx__
 000000006444444400000000fffff566ffffffff0000000000000000444444440000000044644444000000004444464400000000444464440000000000000000
@@ -418,6 +546,136 @@ __gfx__
 44444464444444644444444644444446b3bbb3b3b3bbb3b003bbb3b3000000000000000000000000000000000000000000000000000000000000000000000000
 44444464444444644444444644444446b33333b3b33333b0033333b3000000000000000000000000000000000000000000000000000000000000000000000000
 44444464444444644444444644444446bbbbbbbbbbbbbbb00bbbbbbb000000000000000000000000000000000000000000000000000000000000000000000000
+__label__
+fffffffffffff5666444444444444444644444444444464444444444446444444444464444444444644444444464444444446444444444644444444644444444
+fffffffffffff5666444444444444444644444444444464444444444446444444444464444444444644444444464444444446444444444644444444644444444
+fffffffffffff5666444444444444444644444444444464444444444446444444444464444444444644444444464444444446444444444644444444644444444
+fffffffffffff5666444444444444444644444444444464444444444446444444444464444444444644444444464444444446444444444644444444644444444
+fffffffffffff56664444444444444446444444ccc44464444444444446444444444464444444444644444444464444444446444444444644444444644444444
+fffffffffffff566644444444444444464444ccccccc464444444444446444444444464444444444644444444464444444446444444444644444444644444444
+fffffffffffff566644444444444444464444ccccccc464444444444446444444444464444444444644444444464444444446444444444644444444644444444
+fffffffffffff56664444444444444446444ccccccccc64444444444446444444444464444444444644444444464444444446444444444644444444644444444
+000000000000000000000000000000000000ccccccccc00000000000000000000000000000000000000000000000000000000000000000000000000000000000
+fffffffffffff56664444444444444446444ccccccccc64444444444446444444444464444444444644444444464444444446444444444644444444644444444
+fffffffffffff566644444444444444464444ccccccc464444444444446444444444464444444444644444444464444444446444444444644444444644444444
+fffffffffffff566644444444444444464444ccccccc464444444444446444444444464444444444644444444464444444446444444444644444444644444444
+fffffffffffff56664444444444444446444444ccc44464444444444446444444444464444444444644444444464444444446444444444644444444644444444
+fffffffffffff5666444444444444444644444444444464444444444446444444444464444444444644444444464444444446444444444644444444644444444
+fffffffffffff5666444444444444444644444444444464444444444446444444444464444444444644444444464444444446444444444644444444644444444
+fffffffffffff5666444444444444444644444444444464444444444446444444444464444444444644444444464444444446444444444644444444644444444
+fffffffffffff5666444444444444444644444444444464444444444446444444444464444444444644444444464444444446444444444644444444644444444
+fffffffffffff5666444444444444444644444444444464444444444446444444444464444444444644444444464444444446444444444644444444644444444
+fffffffffffff5666444444444444444644444444444464444444444446444444444464444444444644444444464444444446444444444644444444644444444
+fffffffffffff5666444444444444444644444444444464444444444446444444444464444444444644444444464444444446444444444644444444644444444
+fffffffffffff566644444444444444464444444444446444444ccc4446444444444464444444444644444444464444444446444444444644444444644444444
+fffffffffffff5666444444444444444644444444444464444ccccccc46444444444464444444444644444444464444444446444444444644444444644444444
+fffffffffffff5666444444444444444644444444444464444ccccccc46444444444464444444444644444444464444444446444444444644444444644444444
+fffffffffffff566644444444444444464444444444446444ccccccccc6444444444464444444444644444444464444444446444444444644444444644444444
+0000000000000000000000000000000000000000000000000ccccccccc0000000000000000000000000000000000000000000000000000000000000000000000
+fffffffffffff566644444444444444464444444444446444ccccccccc6444444444464444444444644444444464444444446444444444644444444644444444
+fffffffffffff5666444444444444444644444444444464444ccccccc46444444444464444444444644444444464444444446444444444644444444644444444
+fffffffffffff5666444444444444444644444444444464444ccccccc46444444444464444444444644444444464444444446444444444644444444644444444
+fffffffffffff566644444444444444464444444444446444444ccc4446444444444464444444444644444444464444444446444444444644444444644444444
+fffffffffffff5666444444444444444644444444444464444444444446444444444464444444444644444444464444444446444444444644444444644444444
+fffffffffffff5666444444444444444644444444444464444444444446444444444464444444444644444444464444444446444444444644444444644444444
+fffffffffffff5666444444444444444644444444444464444444444446444444444464444444444644444444464444444446444444444644444444644444444
+fffffffffffff5666444444444444444644444444444464444444444446444444444464444444444644444444464444444446444444444644444444644444444
+fffffffffffff5666444444444444444644444444444464444444444446444444444464444444444644444444464444444446444444444644444444644444444
+fffffffffffff5666444444444444444644444444444464444444444446444444444464444444444644444444464444444446444444444644444444644444444
+fffffffffffff5666444444444444444644444444444464444444444446444444444464444444444644444444464444444446444444444644444444644444444
+fffffffffffff56664444444444444446444444ccc44464444444444446444444444464444444444644444444464444444446444444444644444444644444444
+fffffffffffff566644444444444444464444ccccccc464444444444446444444444464444444444644444444464444444446444444444644444444644444444
+fffffffffffff566644444444444444464444ccccccc464444444444446444444444464444444444644444444464444444446444444444644444444644444444
+fffffffffffff56664444444444444446444ccccccccc64444444444446444444444464444444444644444444464444444446444444444644444444644444444
+000000000000000000000000000000000000ccccccccc00000000000000000000000000000000000000000000000000000000000000000000000000000000000
+fffffffffffff56664444444444444446444ccccccccc64444444444446444444444464444444444644444444464444444446444444444644444444644444444
+fffffffffffff566644444444444444464444ccccccc464444444444446444444444464444444444644444444464444444446444444444644444444644444444
+fffffffffffff566644444444444444464444ccccccc464444444444446444444444464444444444644444444464444444446444444444644444444644444444
+fffffffffffff56664444444444444446444444ccc44464444444444446444444444464444444444644444444464444444446444444444644444444644444444
+fffffffffffff5666444444444444444644444444444464444444444446444444444464444444444644444444464444444446444444444644444444644444444
+fffffffffffff5666444444444444444644444444444464444444444446444444444464444444444644444444464444444446444444444644444444644444444
+fffffffffffff5666444444444444444644444444444464444444444446444444444464444444444644444444464444444446444444444644444444644444444
+fffffffffffff5666444444444444444644444444444464444444444446444444444464444444444644444444464444444446444444444644444444644444444
+fffffffffffff5666444444444444444644444444444464444444444446444444444464444444444644444444464444444446444444444644444444644444444
+fffffffffffff5666444444444444444644444444444464444444444446444444444464444444444644444444464444444446444444444644444444644444444
+fffffffffffff5666444444444444444644444444444464444444444446444444444464444444444644444444464444444446444444444644444444644444444
+fffffffffffffccc6444444444444444644444444444464444444444446444444444464444444444644444444464444444446444444444644444444644444444
+fffffffffffccccccc44444444444444644444444444464444444444446444444444464444444444644444444464444444446444444444644444444644444444
+fffffffffffccccccc44444444444444644444444444464444444444446444444444464444444444644444444464444444446444444444644444444644444444
+ffffffffffccccccccc4444444444444644444444444464444444444446444444444464444444444644444444464444444446444444444644444444644444444
+0000000000ccccccccc0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+ffffffffffccccccccc4444444444444644444444444464444444444446444444444464444444444644444444464444444446444444444644444444644444444
+fffffffffffccccccc44444444444444644444444444464444444444446444444444464444444444644444444464444444446444444444644444444644444444
+fffffffffffccccccc44444444444444644444444444464444444444446444444444464444444444644444444464444444446444444444644444444644444444
+fffffffffffffccc6444444444444444644444444444464444444444446444444444464444444444644444444464444444446444444444644444444644444444
+fffffffffffff5666444444444444444644444444444464444444444446444444444464444444444644444444464444444446444444444644444444644444444
+fffffffffffff5666444444444444444644444444444464444444444446444444444464444444444644444444464444444446444444444644444444644444444
+fffffffffffff5666444444444444444644444444444464444444444446444444444464444444444644444444464444444446444444444644444444644444444
+00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+05550555005500550500055505000555000000005550000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+05050050050005050500050005000500000000005000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+05550050050005050500055005000550000000005000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+05000050050005050500050005000500000000555000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+05000555005505500555055505550555000000555000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+33333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333
+b3bbbbb3b3bbbbb3b3bbbbb3b3bbbbb3b3bbbbb3b3bbbbb3b3bbbbb3b3bbbbb3b3bbbbb3b3bbbbb3b3bbbbb3b3bbbbb3b3bbbbb3b3bbbbb3b3bbbbb3b3bbbbb3
+b3b333b3b3b333b3b3b333b3b3b333b3b3b333b3b3b333b3b3b333b3b3b333b3b3b333b3b3b333b3b3b333b3b3b333b3b3b333b3b3b333b3b3b333b3b3b333b3
+b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3
+b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3
+b3bbb3b3b3bbb3b3b3bbb3b3b3bbb3b3b3bbb3b3b3bbb3b3b3bbb3b3b3bbb3b3b3bbb3b3b3bbb3b3b3bbb3b3b3bbb3b3b3bbb3b3b3bbb3b3b3bbb3b3b3bbb3b3
+b33333b3b33333b3b33333b3b33333b3b33333b3b33333b3b33333b3b33333b3b33333b3b33333b3b33333b3b33333b3b33333b3b33333b3b33333b3b33333b3
+bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+33333335555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555553333333
+b3bbbbb5555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555553bbbbb3
+b3b333b555ccc5555577755555777555557775555577755555777555557775555577755555555555555555555555555555555555555555555555555553b333b3
+b3b3b3b55ccccc555777775557777755577777555777775557777755577777555777775555555555555555555555555555555555555555555555555553b3b3b3
+b3b3b3b55ccccc555777775557777755577777555777775557777755577777555777775555555555555555555555555555555555555555555555555553b3b3b3
+b3bbb3b55ccccc555777775557777755577777555777775557777755577777555777775555555555555555555555555555555555555555555555555553bbb3b3
+b33333b555ccc55555777555557775555577755555777555557775555577755555777555555555555555555555555555555555555555555555555555533333b3
+bbbbbbb555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555bbbbbbb
+33333335555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555553333333
+b3bbbbb5555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555553bbbbb3
+b3b333b5555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555553b333b3
+b3b3b3b5555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555553b3b3b3
+b3b3b3b5555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555553b3b3b3
+b3bbb3b5555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555553bbb3b3
+b33333b55555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555533333b3
+bbbbbbb555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555bbbbbbb
+33333335555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555553333333
+b3bbbbb5555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555553bbbbb3
+b3b333b5555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555553b333b3
+b3b3b3b5555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555553b3b3b3
+b3b3b3b5555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555553b3b3b3
+b3bbb3b5555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555553bbb3b3
+b33333b55555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555533333b3
+bbbbbbb555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555bbbbbbb
+33333335555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555553333333
+b3bbbbb5555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555553bbbbb3
+b3b333b5555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555553b333b3
+b3b3b3b5555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555553b3b3b3
+b3b3b3b5555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555553b3b3b3
+b3bbb3b5555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555553bbb3b3
+b33333b55555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555533333b3
+bbbbbbb555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555bbbbbbb
+33333335555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555553333333
+b3bbbbb5555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555553bbbbb3
+b3b333b5555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555553b333b3
+b3b3b3b5555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555553b3b3b3
+b3b3b3b5555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555553b3b3b3
+b3bbb3b5555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555553bbb3b3
+b33333b55555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555533333b3
+bbbbbbb555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555bbbbbbb
+33333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333
+b3bbbbb3b3bbbbb3b3bbbbb3b3bbbbb3b3bbbbb3b3bbbbb3b3bbbbb3b3bbbbb3b3bbbbb3b3bbbbb3b3bbbbb3b3bbbbb3b3bbbbb3b3bbbbb3b3bbbbb3b3bbbbb3
+b3b333b3b3b333b3b3b333b3b3b333b3b3b333b3b3b333b3b3b333b3b3b333b3b3b333b3b3b333b3b3b333b3b3b333b3b3b333b3b3b333b3b3b333b3b3b333b3
+b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3
+b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3
+b3bbb3b3b3bbb3b3b3bbb3b3b3bbb3b3b3bbb3b3b3bbb3b3b3bbb3b3b3bbb3b3b3bbb3b3b3bbb3b3b3bbb3b3b3bbb3b3b3bbb3b3b3bbb3b3b3bbb3b3b3bbb3b3
+b33333b3b33333b3b33333b3b33333b3b33333b3b33333b3b33333b3b33333b3b33333b3b33333b3b33333b3b33333b3b33333b3b33333b3b33333b3b33333b3
+bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+
 __map__
 04030107010b07090b0701090d10120700000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 06050208020c080a0c08020a0e11130800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
@@ -436,6 +694,26 @@ __map__
 1500000000000000000000000000001600000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 1414141414141414141414141414141400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 __sfx__
+010100012475024700247002470024700247002470024700247002470024700247002470024700247002470024700247002470024700247002470024700247002470024700247002470024700247002470024700
+010100012575025700257002570025700257002570025700257002570025700257002570025700257002570025700257002570025700257002570025700257002570025700257002570025700257002570025700
+010100012675026700267002670026700267002670026700267002670026700267002670026700267002670026700267002670026700267002670026700267002670026700267002670026700267002670026700
+010100012775027700277002770027700277002770027700277002770027700277002770027700277002770027700277002770027700277002770027700277002770027700277002770027700277002770027700
+010100012875028700287002870028700287002870028700287002870028700287002870028700287002870028700287002870028700287002870028700287002870028700287002870028700287002870028700
+010100012975029700297002970029700297002970029700297002970029700297002970029700297002970029700297002970029700297002970029700297002970029700297002970029700297002970029700
+010100012a750190001b0001e0001f00021000220002b0002e0003000031000320000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+010100012b75016000190001a0001c0001d0001e0001e0001f00020000210002200022000230000000024000260002700028000290002a0002b0002c0002c0002e0002f000300003100032000330003400000000
+010100012c75014000170001a0001d0001e000210002300025000280002a0002b0002d0002f000310003300000000000000000000000000000000000000000000000000000000000000000000000000000000000
+010100012d750120001400016000180001a0001b0001c0001d0001e0001f0001f0002000021000220002200000000000000000000000000000000000000000000000000000000000000000000000000000000000
+010100012e7501100014000160001a0001d0002100026000290002e0003100035000380003a000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+011000012f750090000b0000f000110001300016000190001a0001d0001e0002100023000250002600028000290002a0002c0002e0002f0003100000000000000000000000000000000000000000000000000000
+01100001307500c00012000190001c00023000270002e00033000380003e0003f000380003a000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+011000013175011000170001b0002000024000290002f00033000370003b0003f0003f00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+0110000132750180001a0001e00021000240002b0002e00031000360003b0003f0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+01100001337500e00013000170001f0001a0001f0002200026000280002c000300003300037000390003b00000000000000000000000000000000000000000000000000000000000000000000000000000000000
+01100001347500e0000c0001000014000190001c0002000025000280002d0002f00034000380003b0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+01100001357500a0000c0001200015000190001e0000000024000290002d00034000390003d0003f0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+01100001367500b0000e0001000013000150001a0001d00022000270002a0002d00033000350003b0003e00000000000000000000000000000000000000000000000000000000000000000000000000000000000
+01100001377500a0000d0000e0001000013000170001a0001f0002100025000290002a0002f000320003600000000000000000000000000000000000000000000000000000000000000000000000000000000000
 010100012405024700247002470024700247002470024700247002470024700247002470024700247002470024700247002470024700247002470024700247002470024700247002470024700247002470024700
 010100012505025700257002570025700257002570025700257002570025700257002570025700257002570025700257002570025700257002570025700257002570025700257002570025700257002570025700
 010100012605026700267002670026700267002670026700267002670026700267002670026700267002670026700267002670026700267002670026700267002670026700267002670026700267002670026700
